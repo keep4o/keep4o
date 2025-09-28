@@ -5,24 +5,1985 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>#keep4o</title>
   <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 4.5rem 1.25rem 2.5rem;
+      gap: 1.5rem;
+      background-color: #f9fafb;
+      font-family: 'Inter', sans-serif;
+      position: relative;
+    }
+    header {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      z-index: 10;
+    }
+
+    #history-button {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      width: 42px;
+      height: 42px;
+      border: none;
+      border-radius: 999px;
+      background-color: #ffffff;
+      box-shadow: 0 18px 35px rgba(15, 23, 42, 0.18);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      z-index: 12;
+    }
+
+    #history-button.hidden {
+      display: none !important;
+    }
+
+    #history-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 22px 45px rgba(15, 23, 42, 0.22);
+    }
+
+    #history-button:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+
+    #history-button .history-bar {
+      width: 22px;
+      height: 2px;
+      background-color: #111827;
+      border-radius: 999px;
+      display: block;
+      transition: background-color 0.2s ease;
+    }
+
+    #history-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: min(320px, 80vw);
       height: 100vh;
+      background-color: #ffffff;
+      box-shadow: 12px 0 45px rgba(15, 23, 42, 0.18);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      z-index: 11;
+      display: flex;
+      flex-direction: column;
+      padding: 1.25rem;
+      gap: 1rem;
+    }
+
+    #history-panel.open {
+      transform: translateX(0);
+    }
+
+    #history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0;
+    }
+
+    #history-header h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    #history-close {
+      border: none;
+      background: none;
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: #374151;
+      cursor: pointer;
+      line-height: 1;
+      border-radius: 999px;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background-color: #f9fafb;
-      font-family: 'Inter', sans-serif;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
-    h1 {
-      font-size: 4rem;
+
+    #history-close:hover {
+      background-color: #f9fafb;
+      color: #111827;
+    }
+
+    #history-close:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+
+    #history-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 200px);
+      padding-right: 0.25rem;
+    }
+
+    #history-list button {
+      width: 100%;
+      padding: 0.75rem 0.85rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.75rem;
+      background-color: #f9fafb;
+      color: #111827;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    #history-list button:hover {
+      background-color: #e5e7eb;
+      border-color: #d1d5db;
+    }
+
+    #history-list button:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+
+    #history-list button.active {
+      background-color: #2563eb;
+      border-color: #1d4ed8;
+      color: #ffffff;
+    }
+
+    #history-list button.loading {
+      opacity: 0.65;
+      cursor: wait;
+    }
+
+    #history-list button span {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    #history-list button .history-meta {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #6b7280;
+      letter-spacing: 0.01em;
+    }
+
+    #history-list button.active .history-meta {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    #history-empty {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #6b7280;
+      display: none;
+    }
+
+    #history-panel.loading #history-empty {
+      display: block;
+      color: #374151;
+    }
+
+    #history-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(17, 24, 39, 0.45);
+      z-index: 10;
+    }
+    #auth-status {
+      font-size: 0.95rem;
+      color: #374151;
+    }
+    #user-panel {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.6rem;
+      border-radius: 999px;
+      background-color: #f3f4f6;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      position: relative;
+    }
+    #user-panel:hover {
+      background-color: #e5e7eb;
+    }
+    #user-panel:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+    #user-panel svg {
+      display: none;
+    }
+    #user-photo {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      object-fit: cover;
+      display: none;
+    }
+    #user-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #111827;
+    }
+    #user-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 0.5rem);
+      right: 0;
+      background-color: #ffffff;
+      border-radius: 0.75rem;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+      padding: 0.75rem;
+      min-width: 180px;
+    }
+    #user-menu.open {
+      display: block;
+    }
+    #user-menu p {
+      margin: 0 0 0.75rem 0;
+      font-size: 0.85rem;
+      color: #4b5563;
+    }
+    #sign-out-button {
+      width: 100%;
+      background-color: #ef4444;
+      border: none;
+      color: #ffffff;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.55rem 0.75rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    #sign-out-button:hover {
+      background-color: #dc2626;
+    }
+    #sign-out-button:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+    #auth-button {
+      background-color: #2563eb;
+      border: none;
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.45rem 0.9rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    #auth-button:hover {
+      background-color: #1d4ed8;
+    }
+    #main-content {
+      width: min(640px, 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    #main-heading {
+      font-size: clamp(2.5rem, 10vw, 4rem);
       font-weight: 700;
       color: #111827;
       letter-spacing: -0.02em;
+      margin: 0;
+      text-align: center;
+      max-width: 100%;
+      word-break: break-word;
+    }
+
+    #welcome-text {
+      margin: 0;
+      font-size: clamp(1.05rem, 4.5vw, 1.5rem);
+      color: #4b5563;
+      text-align: center;
+      max-width: 100%;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    #chat-interface {
+      width: 100%;
+      max-width: 640px;
+      background-color: #ffffff;
+      border-radius: 1.25rem;
+      box-shadow: 0 22px 45px rgba(15, 23, 42, 0.12);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    #chat-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #111827;
+      text-align: center;
+      margin: 0;
+    }
+
+    .chat-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      background-color: #9ca3af;
+      color: #ffffff;
+      border-radius: 50%;
+      font-size: 0.75rem;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      line-height: 1;
+    }
+
+    #chat-log {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      overflow-y: auto;
+      max-height: min(360px, 45vh);
+      padding-right: 0.25rem;
+    }
+
+    .chat-bubble {
+      padding: 0.75rem 1rem;
+      border-radius: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      max-width: 80%;
+      word-break: break-word;
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .chat-bubble.user {
+      align-self: flex-end;
+      background-color: #2563eb;
+      color: #ffffff;
+    }
+
+    .chat-bubble.user.error {
+      background-color: #9ca3af;
+      color: #ffffff;
+      opacity: 0.7;
+    }
+
+    /* Logged out state - green colors for user chat bubbles */
+    .chat-bubble.user.logged-out {
+      background-color: #10b981;
+    }
+
+    /* Logged in state - blue colors for user chat bubbles (default) */
+    .chat-bubble.user.logged-in {
+      background-color: #2563eb;
+    }
+
+    .chat-bubble.bot {
+      align-self: flex-start;
+      background-color: #e5e7eb;
+      color: #111827;
+    }
+
+    #chat-form {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    #chat-input {
+      flex: 1;
+      min-width: 0;
+      padding: 0.65rem 1rem;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background-color: #f9fafb;
+      font-size: 1rem;
+      color: #111827;
+    }
+
+    #chat-input:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+
+    #chat-form button {
+      border: none;
+      border-radius: 999px;
+      background-color: #2563eb;
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.65rem 1.4rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    #chat-form button:hover {
+      background-color: #1d4ed8;
+    }
+
+    /* Logged out state - green colors */
+    #chat-form button.logged-out {
+      background-color: #10b981;
+    }
+
+    #chat-form button.logged-out:hover {
+      background-color: #059669;
+    }
+
+    /* Logged in state - blue colors (default) */
+    #chat-form button.logged-in {
+      background-color: #2563eb;
+    }
+
+    #chat-form button.logged-in:hover {
+      background-color: #1d4ed8;
+    }
+
+      #chat-form button:disabled {
+        background-color: #9ca3af;
+        cursor: not-allowed;
+        box-shadow: none;
+        opacity: 0.85;
+      }
+
+      #chat-form button:disabled:hover {
+        background-color: #9ca3af;
+      }
+
+    #chat-form button:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 4rem 1rem 2rem;
+      }
+
+      #chat-interface {
+        padding: 1.25rem;
+      }
+
+      .chat-bubble {
+        max-width: 100%;
+      }
+    }
+    #credits-display {
+      position: absolute;
+      bottom: 1rem;
+      right: 1rem;
+      padding: 0.45rem 0.9rem;
+      background-color: #111827;
+      color: #f9fafb;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      min-width: 120px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.22);
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    #credits-display.zero {
+      background-color: #b91c1c;
+      color: #fef2f2;
+    }
+    #buy-credits-callout {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.6rem 1.2rem;
+      background-color: #2563eb;
+      border: none;
+      border-radius: 999px;
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 18px 35px rgba(37, 99, 235, 0.25);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+    #buy-credits-callout:hover:not(:disabled) {
+      background-color: #1d4ed8;
+    }
+    #buy-credits-callout:disabled {
+      cursor: not-allowed;
+      background-color: #93c5fd;
+      box-shadow: none;
+    }
+    #buy-credits-callout:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+    #spend-credit-button {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.6rem 1.2rem;
+      background-color: #2563eb;
+      border: none;
+      border-radius: 999px;
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 18px 35px rgba(37, 99, 235, 0.25);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+    #spend-credit-button:hover:not(:disabled) {
+      background-color: #1d4ed8;
+    }
+    #spend-credit-button:disabled {
+      cursor: not-allowed;
+      background-color: #93c5fd;
+      box-shadow: none;
+    }
+    #spend-credit-button:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+    #restore-chat-button {
+      align-self: flex-start;
+      padding: 0.6rem 1.2rem;
+      background-color: #10b981;
+      border: none;
+      border-radius: 999px;
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: none;
+      transition: background-color 0.2s ease;
+    }
+    #restore-chat-button:hover:not(:disabled) {
+      background-color: #059669;
+    }
+    #restore-chat-button:disabled {
+      cursor: not-allowed;
+      background-color: #6ee7b7;
+    }
+    #restore-chat-button:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
     }
   </style>
 </head>
 <body>
-  <h1>#keep4o</h1>
+  <button id="history-button" type="button" aria-label="Show chat history" aria-haspopup="true" aria-expanded="false" aria-controls="history-panel">
+    <span class="history-bar"></span>
+    <span class="history-bar"></span>
+    <span class="history-bar"></span>
+  </button>
+  <aside id="history-panel" aria-hidden="true" aria-label="Chat history" tabindex="-1">
+    <div id="history-header">
+      <h2>Chat History</h2>
+      <button id="history-close" type="button" aria-label="Close chat history">×</button>
+    </div>
+    <ul id="history-list"></ul>
+    <p id="history-empty" role="status">No chats yet.</p>
+  </aside>
+  <div id="history-backdrop" hidden></div>
+  <header>
+    <div id="user-panel" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-controls="user-menu">
+      <img id="user-photo" alt="User avatar" />
+      <span id="user-name"></span>
+    </div>
+    <button id="auth-button">Sign in</button>
+    <div id="user-menu" role="menu" aria-hidden="true">
+      <p id="user-email" aria-live="polite"></p>
+      <button id="sign-out-button" role="menuitem">Sign out</button>
+    </div>
+  </header>
+  <main id="main-content" role="main">
+    <h1 id="main-heading">#keep4o</h1>
+     <p id="welcome-text">(˶ᵔ ᵕ ᵔ˶)</p>
+  </main>
+  <section id="chat-interface" aria-label="Chat with keep4o">
+    <h2 id="chat-title" aria-live="polite"></h2>
+    <div id="chat-log" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <form id="chat-form" autocomplete="off">
+      <label class="visually-hidden" for="chat-input">Type your message</label>
+      <input id="chat-input" type="text" name="message" placeholder="Type a message" required aria-required="true" />
+      <button type="submit">Send</button>
+    </form>
+    
+  </section>
+  <div id="credits-display" role="status" aria-live="polite"></div>
+  <button id="buy-credits-callout" type="button">Buy more credits?</button>
+  <!-- <button id="spend-credit-button" type="button">Spend Credit</button> -->
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script>
+    (function () {
+      const firebaseConfig = {
+        apiKey: "AIzaSyB5QNlWXRFELFktPhH_KNHI-hHqpfTWV-U",
+        authDomain: "keep40-9d5c9.firebaseapp.com",
+        projectId: "keep40-9d5c9",
+        storageBucket: "keep40-9d5c9.firebasestorage.app"
+      };
+
+      const INIT_URL = "https://us-central1-keep40-9d5c9.cloudfunctions.net/initialize_user";
+      const SPEND_URL = 'https://us-central1-keep40-9d5c9.cloudfunctions.net/spend_credit';
+      const NEXT_CHAT_URL = 'https://us-central1-keep40-9d5c9.cloudfunctions.net/next_chat_message';
+      const SAVE_CHAT_URL = 'https://us-central1-keep40-9d5c9.cloudfunctions.net/save_chat';
+      const GET_CHAT_URL = 'https://us-central1-keep40-9d5c9.cloudfunctions.net/get_chat';
+      const CHAT_AMOUNT_URL = 'https://us-central1-keep40-9d5c9.cloudfunctions.net/chat_amount';
+      const CHAT_TITLES_URL = 'https://us-central1-keep40-9d5c9.cloudfunctions.net/chat_titles';
+
+      firebase.initializeApp(firebaseConfig);
+
+      const auth = firebase.auth();
+      const provider = new firebase.auth.GoogleAuthProvider();
+      const authButton = document.getElementById('auth-button');
+      const userPanel = document.getElementById('user-panel');
+      const userPhoto = document.querySelector('#user-panel img');
+      const userName = document.getElementById('user-name');
+      const userMenu = document.getElementById('user-menu');
+      const userEmail = document.getElementById('user-email');
+      const signOutButton = document.getElementById('sign-out-button');
+      const mainHeading = document.getElementById('main-heading');
+      const welcomeText = document.getElementById('welcome-text');
+      const creditsDisplay = document.getElementById('credits-display');
+      const spendCreditButton = document.getElementById('spend-credit-button');
+      const chatForm = document.getElementById('chat-form');
+      const chatInput = document.getElementById('chat-input');
+      const sendButton = chatForm ? chatForm.querySelector('button[type="submit"]') : null;
+      const sendButtonDefaultText = sendButton ? sendButton.textContent : 'Send';
+      const chatLog = document.getElementById('chat-log');
+      const restoreChatButton = document.getElementById('restore-chat-button');
+      const chatTitle = document.getElementById('chat-title');
+      const historyButton = document.getElementById('history-button');
+      const historyPanel = document.getElementById('history-panel');
+      const historyBackdrop = document.getElementById('history-backdrop');
+      const historyList = document.getElementById('history-list');
+      const historyEmpty = document.getElementById('history-empty');
+      const historyClose = document.getElementById('history-close');
+      const buyCreditsCallout = document.getElementById('buy-credits-callout');
+      const messageHistory = [];
+      let lastAuthUid = null;
+      const initializationCache = new Map();
+      let creditsRequestId = 0;
+      let currentCredits = null;
+      let spendCreditInFlight = false;
+      let isChatProcessing = false;
+      let isMenuOpen = false;
+      let isHistoryOpen = false;
+      let current_chat_number = null;
+      let chatTitles = [];
+      let chatTitlesPromise = null;
+      let chatTitlesLoaded = false;
+      const chatInputDefaultPlaceholder = chatInput ? chatInput.placeholder : 'Type a message';
+
+      function clearChatInterface() {
+        messageHistory.length = 0;
+        if (chatLog) {
+          chatLog.innerHTML = '';
+        }
+      }
+
+      function hasKnownCreditValue(value) {
+        return typeof value === 'number' && Number.isFinite(value);
+      }
+
+      function isOutOfCredits() {
+        return hasKnownCreditValue(currentCredits) && currentCredits <= 0;
+      }
+
+      function updateCreditsUI() {
+        const out = isOutOfCredits();
+
+        if (creditsDisplay) {
+          creditsDisplay.classList.toggle('zero', out);
+        }
+
+        if (sendButton) {
+          sendButton.disabled = out || isChatProcessing;
+        }
+
+        if (chatInput) {
+          if (!out) {
+            chatInput.placeholder = chatInputDefaultPlaceholder;
+            chatInput.removeAttribute('disabled');
+            chatInput.setAttribute('aria-disabled', 'false');
+          } else {
+            chatInput.placeholder = 'Buy credits to continue chatting';
+            chatInput.setAttribute('disabled', 'true');
+            chatInput.setAttribute('aria-disabled', 'true');
+          }
+        }
+
+        if (buyCreditsCallout) {
+          const shouldShow = !!(auth.currentUser && out);
+          buyCreditsCallout.style.display = shouldShow ? 'inline-flex' : 'none';
+          buyCreditsCallout.disabled = !shouldShow;
+        }
+      }
+
+      function setChatProcessing(isProcessing) {
+        isChatProcessing = !!isProcessing;
+
+        if (sendButton) {
+          sendButton.textContent = isProcessing ? 'Sending…' : sendButtonDefaultText;
+        }
+
+        updateCreditsUI();
+      }
+
+      const buildBuyCreditsUrl = (userId) => {
+        if (!userId) {
+          return null;
+        }
+        const encodedId = encodeURIComponent(userId);
+        return `https://buy.stripe.com/eVq5kCddY4UP8UO3353AY01?client_reference_id=${encodedId}`;
+      };
+
+      async function saveChatHistory() {
+        const user = auth.currentUser;
+        if (!user) {
+          return;
+        }
+
+        let idToken;
+        try {
+          idToken = await user.getIdToken();
+        } catch (tokenError) {
+          console.error('Save chat token error:', tokenError);
+          return;
+        }
+
+        try {
+          await fetch(SAVE_CHAT_URL, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              history: messageHistory,
+              chat_number: current_chat_number
+            })
+          });
+        } catch (saveError) {
+          console.error('Save chat error:', saveError);
+        }
+      }
+
+      function openUserMenu() {
+        if (!userMenu || !userPanel) {
+          return;
+        }
+
+        userMenu.classList.add('open');
+      userPanel.setAttribute('aria-expanded', 'true');
+      userMenu.setAttribute('aria-hidden', 'false');
+        isMenuOpen = true;
+      }
+
+      function closeUserMenu() {
+        if (!userMenu || !userPanel) {
+          return;
+        }
+
+        userMenu.classList.remove('open');
+      userPanel.setAttribute('aria-expanded', 'false');
+      userMenu.setAttribute('aria-hidden', 'true');
+        isMenuOpen = false;
+      }
+
+      function toggleUserMenu() {
+        if (isMenuOpen) {
+          closeUserMenu();
+        } else {
+          openUserMenu();
+        }
+      }
+
+      function setHeading(text) {
+        if (mainHeading) {
+          mainHeading.textContent = text;
+        }
+      }
+
+      function setWelcome(text) {
+        if (welcomeText) {
+          welcomeText.textContent = text;
+        }
+      }
+
+      function getChatTitleText(chatNumber) {
+        if (!Number.isInteger(chatNumber) || chatNumber < 0) {
+          return '';
+        }
+
+        if (Array.isArray(chatTitles) && chatTitles[chatNumber]) {
+          const title = String(chatTitles[chatNumber]).trim();
+          if (title) {
+            return title;
+          }
+        }
+
+        return `<span class="chat-badge">${chatNumber}</span>`;
+      }
+
+      function setChatTitle(chatNumber) {
+        if (!chatTitle) {
+          return;
+        }
+
+        if (!Number.isInteger(chatNumber) || chatNumber < 0) {
+          chatTitle.innerHTML = '';
+          return;
+        }
+
+        chatTitle.innerHTML = getChatTitleText(chatNumber);
+      }
+
+      function getDisplayName(user) {
+        return user.displayName || user.email || 'there';
+      }
+
+      function updateUI(user) {
+        if (user) {
+          const displayName = user.displayName || user.email || 'Signed in';
+          if (authButton) {
+            authButton.style.display = 'none';
+          }
+
+          if (userPanel) {
+            userPanel.style.display = 'flex';
+            userPanel.setAttribute('aria-expanded', 'false');
+          }
+
+          if (userName) {
+            userName.textContent = displayName;
+          }
+
+          if (userEmail) {
+            userEmail.textContent = user.email || '';
+            userEmail.style.display = user.email ? 'block' : 'none';
+          }
+
+          if (userPhoto) {
+            if (user.photoURL) {
+              userPhoto.src = user.photoURL;
+              userPhoto.style.display = 'block';
+            } else {
+              userPhoto.removeAttribute('src');
+              userPhoto.style.display = 'none';
+            }
+          }
+
+          if (creditsDisplay) {
+            creditsDisplay.style.display = 'flex';
+            creditsDisplay.textContent = 'Credits: …';
+          }
+
+          if (spendCreditButton) {
+            spendCreditButton.style.display = 'inline-flex';
+            spendCreditButton.disabled = true;
+            spendCreditButton.textContent = 'Loading…';
+          }
+
+          if (buyCreditsCallout) {
+            buyCreditsCallout.style.display = 'none';
+            buyCreditsCallout.disabled = false;
+          }
+
+          // Apply logged-in styling to send button
+          if (sendButton) {
+            sendButton.classList.remove('logged-out');
+            sendButton.classList.add('logged-in');
+          }
+
+          // Update existing chat bubbles to logged-in styling
+          updateExistingChatBubbles();
+
+          currentCredits = null;
+          updateCreditsUI();
+
+          
+
+          closeUserMenu();
+        } else {
+          if (authButton) {
+            authButton.textContent = 'Sign in';
+            authButton.style.display = 'inline-flex';
+          }
+
+          if (userPanel) {
+            userPanel.style.display = 'none';
+            userPanel.setAttribute('aria-expanded', 'false');
+          }
+
+          if (userName) {
+            userName.textContent = '';
+          }
+
+          if (userPhoto) {
+            userPhoto.removeAttribute('src');
+            userPhoto.style.display = 'none';
+          }
+
+          if (creditsDisplay) {
+            creditsDisplay.style.display = 'none';
+            creditsDisplay.textContent = '';
+          }
+
+          if (spendCreditButton) {
+            spendCreditButton.style.display = 'none';
+            spendCreditButton.disabled = true;
+            spendCreditButton.textContent = 'Spend Credit';
+          }
+
+          if (buyCreditsCallout) {
+            buyCreditsCallout.style.display = 'none';
+            buyCreditsCallout.disabled = true;
+          }
+
+          // Apply logged-out styling to send button
+          if (sendButton) {
+            sendButton.classList.remove('logged-in');
+            sendButton.classList.add('logged-out');
+          }
+
+          // Update existing chat bubbles to logged-out styling
+          updateExistingChatBubbles();
+
+          currentCredits = null;
+          updateCreditsUI();
+
+          
+
+          closeUserMenu();
+        }
+      }
+
+      async function ensureUserInitialized(user) {
+        if (!user) {
+          return null;
+        }
+
+        if (initializationCache.has(user.uid)) {
+          return initializationCache.get(user.uid);
+        }
+
+        const initPromise = (async () => {
+          const idToken = await user.getIdToken();
+          const response = await fetch(INIT_URL, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+          });
+
+          const contentType = response.headers.get('content-type') || '';
+          const responseText = await response.text();
+
+          if (!contentType.includes('application/json')) {
+            console.error('Non-JSON response:', response.status, responseText.slice(0, 500));
+            if (!response.ok) {
+              throw new Error(`Initialization failed with status ${response.status}`);
+            }
+            throw new Error('Initialization failed: non-JSON response');
+          }
+
+          let data = {};
+          try {
+            data = responseText ? JSON.parse(responseText) : {};
+          } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            throw new Error('Initialization failed: invalid JSON');
+          }
+
+          if (!response.ok) {
+            const reason = data && (data.reason || data.message);
+            throw new Error(reason || `Initialization request failed with status ${response.status}`);
+          }
+
+          return data;
+        })();
+
+        initializationCache.set(user.uid, initPromise);
+
+        try {
+          const result = await initPromise;
+          return result;
+        } catch (error) {
+          initializationCache.delete(user.uid);
+          throw error;
+        }
+      }
+
+      async function fetchChatAmount(user) {
+        if (!user) {
+          return null;
+        }
+
+        const idToken = await user.getIdToken();
+        const response = await fetch(CHAT_AMOUNT_URL, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${idToken}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Chat amount failed with status ${response.status}`);
+        }
+
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (error) {
+          throw new Error('Chat amount response was not valid JSON');
+        }
+
+        if (!data || typeof data.chat_amount !== 'number') {
+          throw new Error('Chat amount response missing chat_amount');
+        }
+
+        return data.chat_amount;
+      }
+
+      function resolveCreditsValue(data) {
+        if (!data || typeof data !== 'object') {
+          return null;
+        }
+
+        if ('credits' in data && typeof data.credits === 'number') {
+          return data.credits;
+        }
+
+        if ('credit' in data && typeof data.credit === 'number') {
+          return data.credit;
+        }
+
+        if ('balance' in data && typeof data.balance === 'number') {
+          return data.balance;
+        }
+
+        return null;
+      }
+
+      async function fetchUserCredits(user) {
+        if (!user) {
+          return null;
+        }
+
+        const CREDIT_URL = 'https://us-central1-keep40-9d5c9.cloudfunctions.net/get_credit';
+        const idToken = await user.getIdToken();
+        const response = await fetch(CREDIT_URL, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${idToken}`
+          }
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        const responseText = await response.text();
+
+        if (!contentType.includes('application/json')) {
+          console.error('Credits: Non-JSON response:', response.status, responseText.slice(0, 500));
+          if (!response.ok) {
+            throw new Error(`Credits request failed with status ${response.status}`);
+          }
+          throw new Error('Credits request failed: non-JSON response');
+        }
+
+        let data = {};
+        try {
+          data = responseText ? JSON.parse(responseText) : {};
+        } catch (parseError) {
+          console.error('Credits: JSON parse error:', parseError);
+          throw new Error('Credits request failed: invalid JSON');
+        }
+
+        if (!response.ok) {
+          const reason = data && (data.reason || data.message);
+          throw new Error(reason || `Credits request failed with status ${response.status}`);
+        }
+
+        return resolveCreditsValue(data);
+      }
+
+      async function refreshCredits(user) {
+        if (!user || !creditsDisplay) {
+          return;
+        }
+
+        const requestId = ++creditsRequestId;
+
+        creditsDisplay.style.display = 'flex';
+        creditsDisplay.textContent = 'Credits: …';
+
+        if (spendCreditButton) {
+          spendCreditButton.style.display = 'inline-flex';
+          spendCreditButton.disabled = true;
+          spendCreditButton.textContent = 'Loading…';
+        }
+
+        try {
+          const credits = await fetchUserCredits(user);
+          if (requestId !== creditsRequestId) {
+            return;
+          }
+
+          if (typeof credits === 'number' && Number.isFinite(credits)) {
+            creditsDisplay.textContent = `Credits: ${credits}`;
+            currentCredits = credits;
+            updateCreditsUI();
+          } else {
+            creditsDisplay.textContent = 'Credits: --';
+            currentCredits = null;
+            updateCreditsUI();
+          }
+        } catch (error) {
+          if (requestId !== creditsRequestId) {
+            return;
+          }
+
+          console.error('Credit fetch error:', error);
+          creditsDisplay.textContent = 'Credits: --';
+          currentCredits = null;
+          updateCreditsUI();
+        } finally {
+          if (spendCreditButton && requestId === creditsRequestId) {
+            spendCreditButton.textContent = 'Spend Credit';
+            spendCreditButton.disabled = !!(typeof currentCredits === 'number' && currentCredits <= 0);
+            if (typeof currentCredits !== 'number') {
+              spendCreditButton.disabled = false;
+            }
+          }
+
+          if (requestId === creditsRequestId) {
+            updateCreditsUI();
+          }
+        }
+      }
+
+      function greetUser(user, initResult) {
+        const name = getDisplayName(user);
+        if (initResult) {
+          setHeading(`#keep4o`);
+          //setHeading(`Hello, ${name}!`);
+        }
+      }
+
+      async function handleAuthStateChange(user) {
+        const previousUid = lastAuthUid;
+        const nextUid = user ? user.uid : null;
+
+        if (previousUid !== nextUid) {
+          clearChatInterface();
+        }
+
+        lastAuthUid = nextUid;
+
+        updateUI(user);
+
+        if (!user) {
+          setHeading('#keep4o');
+          setWelcome('Sign in to start chatting!');
+          current_chat_number = null;
+          setChatTitle(null);
+          resetHistoryState();
+          if (restoreChatButton) {
+            restoreChatButton.style.display = 'none';
+            restoreChatButton.disabled = true;
+          }
+          setHistoryButtonEnabled(false);
+          return;
+        }
+
+        resetHistoryState();
+        setHistoryButtonEnabled(true);
+        greetUser(user, { created: false });
+        setWelcome('(˶ᵔ ᵕ ᵔ˶)');
+        if (restoreChatButton) {
+          restoreChatButton.style.display = 'inline-flex';
+          restoreChatButton.disabled = false;
+        }
+
+        try {
+          const initResult = await ensureUserInitialized(user);
+          greetUser(user, initResult);
+        } catch (error) {
+          console.error('Initialization error:', error);
+        }
+
+        try {
+          current_chat_number = await fetchChatAmount(user);
+          setChatTitle(current_chat_number);
+          highlightActiveHistoryItem();
+        } catch (error) {
+          console.error('Chat amount error:', error);
+          setChatTitle(null);
+        }
+
+        await refreshCredits(user);
+      }
+
+      auth.onAuthStateChanged(handleAuthStateChange);
+
+      authButton.addEventListener('click', function () {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          auth.signInWithPopup(provider).catch(function (error) {
+            console.error('Sign-in error:', error);
+          });
+        }
+      });
+
+      if (userPanel) {
+        userPanel.addEventListener('click', function () {
+          if (!auth.currentUser) {
+            return;
+          }
+          toggleUserMenu();
+        });
+
+        userPanel.addEventListener('keydown', function (event) {
+          if (!auth.currentUser) {
+            return;
+          }
+
+          const key = event.key;
+          if (key === 'Enter' || key === ' ') {
+            event.preventDefault();
+            toggleUserMenu();
+          }
+        });
+      }
+
+      if (signOutButton) {
+        signOutButton.addEventListener('click', function () {
+          closeUserMenu();
+          auth.signOut().catch(function (error) {
+            console.error('Sign-out error:', error);
+          });
+          if (restoreChatButton) {
+            restoreChatButton.style.display = 'none';
+            restoreChatButton.disabled = true;
+          }
+        });
+      }
+
+      async function handleSpendCreditClick() {
+        const user = auth.currentUser;
+        if (!user || spendCreditInFlight) {
+          return;
+        }
+
+        spendCreditInFlight = true;
+        if (spendCreditButton) {
+          spendCreditButton.disabled = true;
+          spendCreditButton.textContent = 'Processing…';
+        }
+
+        try {
+          const idToken = await user.getIdToken();
+          const response = await fetch(SPEND_URL, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+          });
+
+          const contentType = response.headers.get('content-type') || '';
+          const responseText = await response.text();
+
+          if (!contentType.includes('application/json')) {
+            console.error('Spend credit: Non-JSON response:', response.status, responseText.slice(0, 500));
+            if (!response.ok) {
+              throw new Error(`Spend credit failed with status ${response.status}`);
+            }
+            throw new Error('Spend credit failed: non-JSON response');
+          }
+
+          let data = {};
+          try {
+            data = responseText ? JSON.parse(responseText) : {};
+          } catch (parseError) {
+            console.error('Spend credit: JSON parse error:', parseError);
+            throw new Error('Spend credit failed: invalid JSON');
+          }
+
+          if (!response.ok) {
+            const reason = data && (data.reason || data.message);
+            throw new Error(reason || `Spend credit request failed with status ${response.status}`);
+          }
+
+          const success = !!(data && data.success === true);
+
+          if (success) {
+            if (typeof currentCredits === 'number' && Number.isFinite(currentCredits)) {
+              currentCredits = Math.max(0, currentCredits - 1);
+              creditsDisplay.textContent = `Credits: ${currentCredits}`;
+              updateCreditsUI();
+            } else {
+              await refreshCredits(user);
+            }
+          } else {
+            currentCredits = typeof currentCredits === 'number' ? currentCredits : currentCredits;
+          }
+        } catch (error) {
+          console.error('Spend credit error:', error);
+        } finally {
+          spendCreditInFlight = false;
+          if (spendCreditButton) {
+            spendCreditButton.textContent = 'Spend Credit';
+            spendCreditButton.disabled = !!(typeof currentCredits === 'number' && currentCredits <= 0);
+          }
+
+          updateCreditsUI();
+        }
+      }
+
+      if (spendCreditButton) {
+        spendCreditButton.addEventListener('click', handleSpendCreditClick);
+      }
+
+      async function restoreChatHistory(chatNumber = 0, { skipButtonState = false } = {}) {
+        const user = auth.currentUser;
+        if (!user) {
+          return;
+        }
+
+        const shouldUpdateButton = !skipButtonState && !!restoreChatButton;
+
+        if (shouldUpdateButton) {
+        restoreChatButton.disabled = true;
+        restoreChatButton.textContent = 'Restoring…';
+        }
+
+        let idToken;
+        try {
+          idToken = await user.getIdToken();
+        } catch (tokenError) {
+          console.error('Save chat token error:', tokenError);
+          if (shouldUpdateButton) {
+            restoreChatButton.textContent = 'Restore Chat';
+            restoreChatButton.disabled = false;
+          }
+          return;
+        }
+
+        try {
+          const normalizedNumber = Number.isInteger(chatNumber) && chatNumber >= 0 ? chatNumber : 0;
+          const url = new URL(GET_CHAT_URL);
+          url.searchParams.set('chat_number', String(normalizedNumber));
+          const response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${idToken}`
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`Restore chat failed with status ${response.status}`);
+          }
+
+          let data = null;
+          try {
+            data = await response.json();
+          } catch (parseError) {
+            throw new Error('Restore chat response was not valid JSON');
+          }
+
+          if (!data || !Array.isArray(data.history)) {
+            throw new Error('Restore chat response missing history');
+          }
+
+          chatLog.innerHTML = '';
+          messageHistory.length = 0;
+          current_chat_number = normalizedNumber;
+          setChatTitle(current_chat_number);
+          highlightActiveHistoryItem();
+
+          for (const entry of data.history) {
+            if (!Array.isArray(entry) || entry.length !== 2) {
+              continue;
+            }
+            const [role, text] = entry;
+            if (role !== 'user' && role !== 'assistant') {
+              continue;
+            }
+            const bubbleRole = role === 'user' ? 'user' : 'bot';
+            appendChatBubble(String(text), bubbleRole);
+            messageHistory.push([role, String(text)]);
+          }
+        } catch (error) {
+          console.error('Restore chat error:', error);
+        } finally {
+          if (shouldUpdateButton) {
+          restoreChatButton.textContent = 'Restore Chat';
+          restoreChatButton.disabled = false;
+          }
+        }
+      }
+
+      if (restoreChatButton) {
+        restoreChatButton.addEventListener('click', function () {
+          restoreChatHistory(0);
+        });
+      }
+
+      function resetHistoryState() {
+        chatTitles = [];
+        chatTitlesPromise = null;
+        chatTitlesLoaded = false;
+        if (historyList) {
+          historyList.innerHTML = '';
+        }
+        showHistoryMessage('');
+      }
+
+      function showHistoryMessage(message) {
+        if (!historyEmpty) {
+          return;
+        }
+
+        if (message) {
+          historyEmpty.textContent = message;
+          historyEmpty.style.display = 'block';
+        } else {
+          historyEmpty.textContent = '';
+          historyEmpty.style.display = 'none';
+        }
+      }
+
+      function highlightActiveHistoryItem() {
+        if (!historyList) {
+          return;
+        }
+
+        const buttons = historyList.querySelectorAll('button[data-chat-number]');
+        const activeNumber = Number.isInteger(current_chat_number) ? current_chat_number : null;
+
+        buttons.forEach(function (button) {
+          const buttonNumber = parseInt(button.dataset.chatNumber || '', 10);
+          const isActive = Number.isInteger(buttonNumber) && buttonNumber === activeNumber;
+          if (isActive) {
+            button.classList.add('active');
+            button.setAttribute('aria-current', 'true');
+          } else {
+            button.classList.remove('active');
+            button.removeAttribute('aria-current');
+          }
+        });
+      }
+
+      function renderChatTitles(titles) {
+        if (!historyList) {
+          return;
+        }
+
+        historyList.innerHTML = '';
+
+        if (!Array.isArray(titles) || titles.length === 0) {
+          showHistoryMessage('No chats yet.');
+          highlightActiveHistoryItem();
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        for (let index = titles.length - 1; index >= 0; index -= 1) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.chatNumber = String(index);
+
+          const titleValue = typeof titles[index] === 'string' ? titles[index].trim() : '';
+          const label = document.createElement('span');
+          label.textContent = titleValue || `Chat ${index}`;
+
+          const meta = document.createElement('span');
+          meta.className = 'history-meta';
+          meta.textContent = `Chat ${index}`;
+
+          button.appendChild(label);
+          button.appendChild(meta);
+
+          fragment.appendChild(button);
+        }
+
+        historyList.appendChild(fragment);
+        showHistoryMessage('');
+        highlightActiveHistoryItem();
+
+        historyList.querySelectorAll('button[data-chat-number]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            const value = parseInt(button.dataset.chatNumber || '', 10);
+            if (!Number.isInteger(value) || value < 0) {
+              return;
+            }
+            closeHistoryPanel();
+            restoreChatHistory(value, { skipButtonState: true });
+          });
+        });
+      }
+
+      async function requestChatTitles(user) {
+        const idToken = await user.getIdToken();
+        const response = await fetch(CHAT_TITLES_URL, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${idToken}`
+          }
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        const responseText = await response.text();
+
+        if (!contentType.includes('application/json')) {
+          console.error('Chat titles: Non-JSON response:', response.status, responseText.slice(0, 500));
+          if (!response.ok) {
+            throw new Error(`Chat titles request failed with status ${response.status}`);
+          }
+          throw new Error('Chat titles request failed: non-JSON response');
+        }
+
+        let data = {};
+        try {
+          data = responseText ? JSON.parse(responseText) : {};
+        } catch (parseError) {
+          console.error('Chat titles: JSON parse error:', parseError);
+          throw new Error('Chat titles request failed: invalid JSON');
+        }
+
+        if (!response.ok) {
+          const reason = data && (data.reason || data.message);
+          throw new Error(reason || `Chat titles request failed with status ${response.status}`);
+        }
+
+        const titles = Array.isArray(data.chat_titles) ? data.chat_titles : [];
+        return titles.map(function (title) {
+          if (typeof title === 'string') {
+            return title;
+          }
+
+          if (title === null || title === undefined) {
+            return '';
+          }
+
+          return String(title);
+        });
+      }
+
+      async function loadChatTitles(options = {}) {
+        const { forceRefresh = false } = options;
+
+        if (!historyList || !historyPanel || !auth.currentUser) {
+          return;
+        }
+
+        const hasCachedTitles = chatTitlesLoaded && Array.isArray(chatTitles) && chatTitles.length > 0;
+
+        if (forceRefresh) {
+          chatTitlesPromise = null;
+        } else if (hasCachedTitles) {
+          renderChatTitles(chatTitles);
+          return;
+        }
+
+        if (!hasCachedTitles) {
+          historyList.innerHTML = '';
+          showHistoryMessage('Loading…');
+        }
+
+        historyPanel.classList.add('loading');
+
+        if (!chatTitlesPromise) {
+          const currentUser = auth.currentUser;
+          if (!currentUser) {
+            historyPanel.classList.remove('loading');
+            return;
+          }
+          chatTitlesPromise = requestChatTitles(currentUser);
+        }
+
+        try {
+          const titles = await chatTitlesPromise;
+          chatTitles = Array.isArray(titles) ? titles : [];
+          chatTitlesLoaded = true;
+          renderChatTitles(chatTitles);
+          if (chatTitles.length === 0) {
+            showHistoryMessage('No chats yet.');
+          }
+        } catch (error) {
+          console.error('Chat titles load error:', error);
+          if (!hasCachedTitles) {
+            showHistoryMessage('Could not load chat history.');
+          }
+        } finally {
+          historyPanel.classList.remove('loading');
+        }
+      }
+
+      function openHistoryPanel() {
+        if (!historyPanel || !historyButton) {
+          return;
+        }
+
+        if (!auth.currentUser) {
+          return;
+        }
+
+        isHistoryOpen = true;
+        historyPanel.classList.add('open');
+      historyButton.classList.add('hidden');
+        historyPanel.setAttribute('aria-hidden', 'false');
+        historyPanel.focus({ preventScroll: true });
+        historyButton.setAttribute('aria-expanded', 'true');
+
+        if (historyBackdrop) {
+          historyBackdrop.hidden = false;
+        }
+
+        loadChatTitles();
+      }
+
+      function closeHistoryPanel({ focusButton = true } = {}) {
+        if (!historyPanel || !historyButton) {
+          return;
+        }
+
+        isHistoryOpen = false;
+        historyPanel.classList.remove('open');
+        historyButton.classList.remove('hidden');
+        historyPanel.setAttribute('aria-hidden', 'true');
+        historyButton.setAttribute('aria-expanded', 'false');
+        historyPanel.classList.remove('loading');
+        showHistoryMessage('');
+
+        if (focusButton) {
+          historyButton.focus({ preventScroll: true });
+        }
+
+        if (historyBackdrop) {
+          historyBackdrop.hidden = true;
+        }
+      }
+
+      function toggleHistoryPanel() {
+        if (isHistoryOpen) {
+          closeHistoryPanel();
+        } else {
+          openHistoryPanel();
+        }
+      }
+
+      function setHistoryButtonEnabled(enabled) {
+        if (!historyButton) {
+          return;
+        }
+
+        if (enabled) {
+        historyButton.disabled = false;
+        historyButton.style.display = 'flex';
+        } else {
+        historyButton.disabled = true;
+        historyButton.style.display = 'none';
+          closeHistoryPanel({ focusButton: false });
+          resetHistoryState();
+        }
+      }
+
+      function updateExistingChatBubbles() {
+        if (!chatLog) {
+          return;
+        }
+
+        const userBubbles = chatLog.querySelectorAll('.chat-bubble.user');
+        const isLoggedIn = !!auth.currentUser;
+        
+        userBubbles.forEach(bubble => {
+          // Remove existing auth state classes
+          bubble.classList.remove('logged-in', 'logged-out');
+          
+          // Add appropriate class based on current auth state
+          if (isLoggedIn) {
+            bubble.classList.add('logged-in');
+          } else {
+            bubble.classList.add('logged-out');
+          }
+        });
+      }
+
+      function appendChatBubble(text, role) {
+        if (!chatLog) {
+          return null;
+        }
+
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${role}`;
+        
+        // Apply authentication state styling to user chat bubbles
+        if (role === 'user') {
+          const isLoggedIn = !!auth.currentUser;
+          if (isLoggedIn) {
+            bubble.classList.add('logged-in');
+          } else {
+            bubble.classList.add('logged-out');
+          }
+        }
+        
+        bubble.textContent = text;
+        chatLog.appendChild(bubble);
+        chatLog.scrollTop = chatLog.scrollHeight;
+        return bubble;
+      }
+
+      if (historyButton) {
+        historyButton.addEventListener('click', function () {
+          toggleHistoryPanel();
+        });
+
+        historyButton.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            toggleHistoryPanel();
+          }
+        });
+      }
+
+      if (historyBackdrop) {
+        historyBackdrop.addEventListener('click', function () {
+          closeHistoryPanel();
+        });
+      }
+
+      if (historyClose) {
+        historyClose.addEventListener('click', function () {
+          closeHistoryPanel();
+        });
+      }
+
+      if (chatForm && chatInput && chatLog) {
+        chatForm.addEventListener('submit', async function (event) {
+          event.preventDefault();
+
+          if (isChatProcessing) {
+            return;
+          }
+
+          const message = chatInput.value.trim();
+          if (!message) {
+            return;
+          }
+
+          if (isOutOfCredits()) {
+            updateCreditsUI();
+            return;
+          }
+
+          setChatProcessing(true);
+
+          appendChatBubble(message, 'user');
+          messageHistory.push(['user', message]);
+          chatInput.value = '';
+
+          try {
+            if (!auth.currentUser) {
+              requestAnimationFrame(function () {
+                const reply = 'Sign in to start chatting!';
+                appendChatBubble(reply, 'bot');
+                messageHistory.push(['assistant', reply]);
+                saveChatHistory();
+              });
+              chatInput.focus();
+              return;
+            }
+
+            const pendingBubble = appendChatBubble('…', 'bot');
+            let assistantMessage = '';
+
+            try {
+              const idToken = await auth.currentUser.getIdToken();
+              const response = await fetch(NEXT_CHAT_URL, {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${idToken}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  history: messageHistory,
+                  model: 'chatgpt-4o-latest'
+                })
+              });
+
+              const responseText = await response.text();
+
+              if (!response.ok) {
+                throw new Error(`Chat request failed with status ${response.status}`);
+              }
+
+              let data = null;
+              try {
+                data = responseText ? JSON.parse(responseText) : null;
+              } catch (parseError) {
+                throw new Error('Chat response was not valid JSON');
+              }
+
+              if (!data || typeof data !== 'object') {
+                throw new Error('Chat response missing data');
+              }
+
+              // Check if the response indicates failure
+              if (data.success === false) {
+                // Remove the last item from messageHistory (user's message)
+                messageHistory.pop();
+                
+                // Remove the bot's placeholder bubble
+                if (pendingBubble) {
+                  pendingBubble.remove();
+                }
+                
+                // Grey out the user's previous chat bubble
+                const userBubbles = chatLog.querySelectorAll('.chat-bubble.user');
+                if (userBubbles.length > 0) {
+                  const lastUserBubble = userBubbles[userBubbles.length - 1];
+                  lastUserBubble.classList.add('error');
+                }
+                
+                // Don't spend credit on failed requests
+                return;
+              }
+
+              if (data.success !== true || typeof data.message !== 'string') {
+                throw new Error('Chat response missing message');
+              }
+
+              assistantMessage = data.message.trim();
+
+              if (!assistantMessage) {
+                assistantMessage = '...';
+              }
+
+              await handleSpendCreditClick();
+            } catch (error) {
+              console.error('Chat response error:', error);
+              assistantMessage = 'Sorry, I could not respond right now.';
+            }
+
+            if (pendingBubble) {
+              pendingBubble.textContent = assistantMessage;
+            } else {
+              appendChatBubble(assistantMessage, 'bot');
+            }
+
+            messageHistory.push(['assistant', assistantMessage]);
+            await saveChatHistory();
+            if (!isOutOfCredits()) {
+              await refreshCredits(auth.currentUser);
+            } else {
+              updateCreditsUI();
+            }
+            chatInput.focus();
+          } finally {
+            setChatProcessing(false);
+          }
+        });
+      }
+
+      if (buyCreditsCallout) {
+        buyCreditsCallout.addEventListener('click', function () {
+          const user = auth.currentUser;
+        const url = buildBuyCreditsUrl(user ? user.uid : null);
+          if (url) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
+        });
+      }
+
+      document.addEventListener('click', function (event) {
+        if (!isMenuOpen) {
+          return;
+        }
+
+        const target = event.target;
+        if (!userPanel || !userMenu) {
+          return;
+        }
+
+        if (!userPanel.contains(target) && !userMenu.contains(target)) {
+          closeUserMenu();
+        }
+      });
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && isMenuOpen) {
+          closeUserMenu();
+          userPanel?.focus();
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
