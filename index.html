@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>#keep4o</title>
   <style>
     *, *::before, *::after {
@@ -12,11 +12,13 @@
     body {
       margin: 0;
       min-height: 100vh;
+      min-height: 100dvh; /* Dynamic viewport height for mobile */
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
       padding: 4.5rem 1.25rem 2.5rem;
+      padding-bottom: max(2.5rem, env(safe-area-inset-bottom) + 1rem);
       gap: 1.5rem;
       background-color: #f9fafb;
       font-family: 'Inter', sans-serif;
@@ -510,6 +512,7 @@
     @media (max-width: 480px) {
       body {
         padding: 4rem 1rem 2rem;
+        padding-bottom: max(2rem, env(safe-area-inset-bottom) + 1rem);
       }
 
       #chat-interface {
@@ -522,7 +525,7 @@
     }
     #credits-display {
       position: absolute;
-      bottom: 1rem;
+      bottom: max(1rem, env(safe-area-inset-bottom) + 0.5rem);
       right: 1rem;
       padding: 0.45rem 0.9rem;
       background-color: #111827;
@@ -543,7 +546,7 @@
     }
     #buy-credits-callout {
       position: absolute;
-      bottom: 1rem;
+      bottom: max(1rem, env(safe-area-inset-bottom) + 0.5rem);
       left: 1rem;
       padding: 0.6rem 1.2rem;
       background-color: #2563eb;
@@ -573,7 +576,7 @@
     }
     #spend-credit-button {
       position: absolute;
-      bottom: 1rem;
+      bottom: max(1rem, env(safe-area-inset-bottom) + 0.5rem);
       left: 50%;
       transform: translateX(-50%);
       padding: 0.6rem 1.2rem;
